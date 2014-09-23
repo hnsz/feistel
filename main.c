@@ -24,31 +24,20 @@ char *allocCharBuffer(int size)
 }
 
 
-//      returns lenght of string
-size_t length(char *password)
-{
-	int i = 0;
-	while (password[i] != '\0') {
-		i++;
-	}
-	return i;
-}
 
 
 //      makes new key from old one
-void computeNewKey(unsigned char key[20])
+void computeNewKey(unsigned char key_dst[20], unsigned char key_src[20])
 {
 
-
+/**
 	int k;
 	char pieceOfKeyString[3] = "";
 	char keyString[(SHA_DIGEST_LENGTH * 2) + 1] = "";
 
-	//char* probeersel = "\xb1\x40\xbe\x15\x4f\xd8\xaa\xd2\xc9\x4b\x0d\x48\x0a\x31\x63\x81\xf4\x96\xec\x9c";
 
 	for (k = 0; k < SHA_DIGEST_LENGTH; k++) {
-		sprintf(pieceOfKeyString, "%02x", /*probeersel[k] */
-			key[k]);
+		sprintf(pieceOfKeyString, "%02x", key[k]);
 		strcat(keyString, pieceOfKeyString);
 	}
 
@@ -63,29 +52,39 @@ void computeNewKey(unsigned char key[20])
 	}
 	printf("\n");
 	//	END DEBUG
-
+*/
 }
 
 
 void buildKeySchedule(char *password, char keySchedule[10][4])
 {
+	unsigned char cur_key[SHA_DIGEST_LENGTH];
+	unsigned char next_key[SHA_DIGEST_LENGTH];
 	int i;
-	unsigned char key[SHA_DIGEST_LENGTH];
 
-	SHA1((unsigned const char *) password, length(password), key);
+
+
+
+	SHA1((unsigned const char *) password, strlen(password), next_key);
 
 	//	DEBUG
+/*
 	for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
 	{
-		printf("%02x ", key[i]);
+		printf("%02x ", next_key[i]);
 	}
 	printf("\n");
+*/
 	//	END DEBUG
 
 
 	for (i = 0; i < 4; i++) {
-		memcpy(keySchedule[i * 2], key, 4);
-		memcpy(keySchedule[(i * 2) + 1], key + 4, 4);
+
+
+		memcpy(cur_key, next_key, SHA_DIGEST_LENGTH);
+
+		memcpy(keySchedule[i * 2], cur_key, 4);
+		memcpy(keySchedule[(i * 2) + 1], cur_key + 4, 4);
 
 
 		//	DEBUG
@@ -98,7 +97,7 @@ void buildKeySchedule(char *password, char keySchedule[10][4])
 		*/
 		//	END DEBUG
 
-		computeNewKey(key);
+		SHA1(cur_key, SHA_DIGEST_LENGTH, next_key);
 	}
 }
 
@@ -137,7 +136,6 @@ int getArgs(int argc, char **argv, int *decrypt, char *password)
 }
 
 
-//      returns 0 and reports incorrect usage
 void printUsageExit(char *programName, int exitCode)
 {
 	printf("Usage: %s -e|-d password\n\
