@@ -10,239 +10,255 @@
 #define BLOCKSIZE 8
 
 
-char *alloc_char_buffer(int size)
+char *allocCharBuffer(int size)
 {
 	char *buffer;
 
-	buffer = malloc(size*sizeof(char));
-	if(buffer == NULL) {
+	buffer = malloc(size * sizeof(char));
+	if (buffer == NULL) {
 		printf("Cannot allocate memory.");
 		exit(-1);
 	}
-	
+
 	return buffer;
 }
 
 
-//	returns 0 and reports incorrect usage
-int incorrectUsage(char* programName) 
+//      returns lenght of string
+size_t length(char *password)
 {
-    printf("usage: %s [-d] password\nWhere the password is 8 characters or more.\n", programName); // 8 should be 8 or longer!!!
-    return 0;
+	int i = 0;
+	while (password[i] != '\0') {
+		i++;
+	}
+	return i;
 }
 
 
-//	returns lenght of string
-size_t length(char* password)
-{
-      int i = 0;
-      while (password[i] != '\0')
-      {
-	  i++;
-      }
-      return i;
-}
-
-
-// 	makes new key from old one
+//      makes new key from old one
 void computeNewKey(unsigned char key[20])
 {
-  
-  
-    int k;
-    char pieceOfKeyString[3] = "";
-    char keyString[(SHA_DIGEST_LENGTH*2) +1] = "";
-    
-    //char* probeersel = "\xb1\x40\xbe\x15\x4f\xd8\xaa\xd2\xc9\x4b\x0d\x48\x0a\x31\x63\x81\xf4\x96\xec\x9c";
-    
-    for (k = 0; k < SHA_DIGEST_LENGTH; k++) 
-    {
-	sprintf(pieceOfKeyString, "%02x", /*probeersel[k]*/key[k]);
-	strcat(keyString, pieceOfKeyString);
-    }
-    
-    SHA1((unsigned const char*) keyString , SHA_DIGEST_LENGTH*2, key);
-    
-    printf("%s = keystring\n", keyString);
-    
-    for (int i=0; i<SHA_DIGEST_LENGTH; i++)  	 	//for debugging purposes
-    {							//
-    printf("%02x ", key[i]);				//
-    }							//
-    printf("\n"); 					//for debugging purposes
-    
-}
 
 
-void buildKeySchedule(char* password, char keySchedule[10][4])
-{
-    int i;
-    unsigned char key[SHA_DIGEST_LENGTH];
-    
-    SHA1((unsigned const char*) password, length(password), key);
-    
-    for (int i=0; i<SHA_DIGEST_LENGTH; i++)  	 	//for debugging purposes
-    {							//
-    printf("%02x ", key[i]);				//
-    }							//
-    printf("\n"); 					//for debugging purposes
+	int k;
+	char pieceOfKeyString[3] = "";
+	char keyString[(SHA_DIGEST_LENGTH * 2) + 1] = "";
 
-    for(i = 0; i<4; i++) 
-    {  
-	 memcpy(keySchedule[i*2], key, 4);
-	 memcpy(keySchedule[(i*2)+1], key+4, 4);
-	 
-	 //int j;					// debugging
-	 //for (int j=0; j<4; j++)  	 	//for debugging purposes
-	 //{							//
-	 //printf("%02x ", keySchedule[i*2][j]);				//
-	 //}							//
-	 printf("\n"); 						//for debugging purposes
-	 
-	 computeNewKey(key);
-    }
-}
+	//char* probeersel = "\xb1\x40\xbe\x15\x4f\xd8\xaa\xd2\xc9\x4b\x0d\x48\x0a\x31\x63\x81\xf4\x96\xec\x9c";
 
-
-
-//	checks usage
-int correctUsage(int argc, char *argv[], int *decrypt, int *locationPassword)
-{
-    int i;
-    for(i=1; i<argc; i++) 
-    {
-	if (strcmp("-d", argv[i]) == 0) {
-	    if (*decrypt == 0) 
-	    {
-		*decrypt = 1;
-	    } 
-	    else 
-	    {
-		return incorrectUsage(argv[0]);
-	    }
-	} 
-	else 
-	{
-	    if (strlen(argv[i]) >= 8) 
-	    {
-		if (*locationPassword == 0)
-		{
-		    *locationPassword = i;
-		}
-		else
-		{
-		    return incorrectUsage(argv[0]);
-		}
-	    } 
-	    else 
-	    {
-		return incorrectUsage(argv[0]);
-	    }
+	for (k = 0; k < SHA_DIGEST_LENGTH; k++) {
+		sprintf(pieceOfKeyString, "%02x", /*probeersel[k] */
+			key[k]);
+		strcat(keyString, pieceOfKeyString);
 	}
-    }
-    
-    if (*locationPassword == 0)
-    {
-	return incorrectUsage(argv[0]);
-    }
-    
-    return 1;
+
+	SHA1((unsigned const char *) keyString, SHA_DIGEST_LENGTH * 2, key);
+
+	printf("%s = keystring\n", keyString);
+
+	//	DEBUG
+	for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
+	{
+		printf("%02x ", key[i]);
+	}
+	printf("\n");
+	//	END DEBUG
+
 }
 
 
-
-//	prints block to file
-void printToFile(char block[BLOCKSIZE], FILE *output)
+void buildKeySchedule(char *password, char keySchedule[10][4])
 {
-    int i;
-    for (i=0; i<BLOCKSIZE; i++)
-    {
-	fputc(block[i], output);
-    }
+	int i;
+	unsigned char key[SHA_DIGEST_LENGTH];
+
+	SHA1((unsigned const char *) password, length(password), key);
+
+	//	DEBUG
+	for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
+	{
+		printf("%02x ", key[i]);
+	}
+	printf("\n");
+	//	END DEBUG
+
+
+	for (i = 0; i < 4; i++) {
+		memcpy(keySchedule[i * 2], key, 4);
+		memcpy(keySchedule[(i * 2) + 1], key + 4, 4);
+
+
+		//	DEBUG
+		/*
+		int j;
+		for (int j=0; j<4; j++) {
+			printf("%02x ", keySchedule[i*2][j]);
+		}
+		printf("\n");
+		*/
+		//	END DEBUG
+
+		computeNewKey(key);
+	}
 }
 
-//	writes decryption or encryption of stdin to stdout
+
+
+int getArgs(int argc, char **argv, int *decrypt, char *password)
+{
+	int pwLength;
+
+
+	if (strcmp("-d", argv[0]) == 0) {
+
+		*decrypt = 1;
+	}
+	else
+	if(strcmp("-e", argv[0]) == 0) {
+
+		*decrypt = 0;
+	}
+	else {
+		return 0;
+	}
+
+
+	pwLength = strlen(argv[1]);
+	if(pwLength >= 8) {
+		
+		password = allocCharBuffer(pwLength + 1);
+		strcpy(password, argv[1]);
+	}
+	else {
+		return 0;
+	}
+
+	return 1;
+}
+
+
+//      returns 0 and reports incorrect usage
+void printUsageExit(char *programName, int exitCode)
+{
+	printf("Usage: %s -e|-d password\n\
+-d	decrypt\n-e	encrypt\nPassword must be of length > 8.\n", programName);
+	exit(exitCode);
+}
+
+
+
+void fPrintBlock(char block[BLOCKSIZE], FILE * output)
+{
+	int i;
+	for (i = 0; i < BLOCKSIZE; i++) {
+		fputc(block[i], output);
+	}
+}
+
+FILE *fCheckOpen(char *filename, char *mode)
+{
+	FILE *fp;
+
+	fp = fopen(filename, mode);
+	if(fp == NULL) {
+		printf("Failed to open file '%s', mode \"%s\". Exit..", filename, mode);
+		exit(-1);
+	}
+
+	return fp;
+}
+
+void nPadN(char *block, int size, int n)
+{
+	int i;
+
+	for(i = size - n; i < size; i++) {
+
+		block[i] = n;
+	}
+}
+
+/*******
+	!!(Remove Comment) There could be one off problems.
+*/
+int fReadBlock(char *block, int size, FILE *fp)
+{
+	int n;
+
+	n = fread(block, 1, size, fp);
+
+
+	if(n < size && n > 0) {
+		nPadN(block, size, n);
+	}
+
+	return n;
+}
+
+//      writes decryption or encryption of stdin to stdout
 int main(int argc, char *argv[])
 {
-    FILE *input, *output;
-    int decrypt = 0, locationPassword = 0;
-    
-    
-    
-    if ( correctUsage(argc, argv, &decrypt, &locationPassword) )
-    {	
-	
-	input = fopen("stdin", "r");
-	
-	if (input == NULL) 
-	{
-	    printf( "Could not open file: stdin\n" );
-	}
-    
-	output = fopen("stdout", "w");
-	if (output == NULL) 
-	{
-	    printf( "Could not open file: stdout\n" );
-	}
-	
-	
-	if (input != NULL && output != NULL)
-	{
-	    char* password = "\x1e\xfe\xba\x22\xe7\x70\xe9\x5f";  //argv[locationPassword];
-	    printf("password: %s\ndecrypt: %d\n", password, decrypt);	//for debugging purposes
-	    
-	    char keySchedule[10][4];
-	    buildKeySchedule(password, keySchedule);
+	FILE *inFile;
+	FILE *outFile;
 
-	    char x;
-	    int i = 0;
-	    char block[BLOCKSIZE];
-	    
-	    
-	    while ((x = fgetc(input)) != EOF) 
-	    {
-		
-		block[i] = x;
-		
-		if (i == 7) 
-		{
-		    int j;
-		    for (j=0; j<10; j++)
-		    {
-			char* subKey;
+	char *inFilename = "stdin";
+	char *outFilename = "stdout";
+	char *password = "12345678";
+	char keySchedule[10][4];
+	char block[BLOCKSIZE];
+	char *subKey;
+
+	int decrypt;
+	int i;
+
+
+	decrypt = 1;
+	/*	Disable: Using Hardcoded values for now.
+	if(! getArgs(argc, argv, &decrypt, password)) {
+
+		printUsageExit(argv[0], -1);
+
+	}
+	*/
+	inFile = fCheckOpen(inFilename, "r");
+	outFile = fCheckOpen(outFilename, "w");
+
+	//	DEBUG
+	printf("password: %s\ndecrypt: %d\n", password, decrypt);
+
+
+
+
+	buildKeySchedule(password, keySchedule);
+
+
+
+	while ((fReadBlock(block, BLOCKSIZE, inFile)) != EOF) {
+
+		for (i = 0; i < 10; i++) {
 			if (decrypt) {
-			  subKey = keySchedule[9-j];
+				subKey = keySchedule[9 - i];
 			} else {
-			  subKey = keySchedule[j];
+				subKey = keySchedule[i];
 			}
-			
+
 			feistel(block, subKey);
-			
-		    }
-		    printToFile(block, output);
-		    //fprintf(output, "%s", block);
-		    //fprintf(output, "\n");				//for debugging purposes
-		    
-		    i = 0;
-		    
-		} 
-		else 
-		{
-		    i++;
+
 		}
-	    }
+		fPrintBlock(block, outFile);
 
-	    
-	    
-	    
-	    fclose(input);
-	    fclose(output);
+		//	DEBUG
+		//fprintf(output, "%s", block);
+		//fprintf(output, "\n");
+
 	}
-	
-    } 
-    
-    return 0;
+
+
+
+
+	fclose(inFile);
+	fclose(outFile);
+
+
+	return 0;
 }
-
-
-
