@@ -190,6 +190,7 @@ void fPrintBlock(FILE *out, char block[BLOCKSIZE], int n)
 void nPadN(char *block, int size, int n)
 {
 	int i;
+	printf("n padding with: %d\n", n);
 
 	for(i = size - n; i < size; i++) {
 
@@ -226,12 +227,10 @@ int fReadBlock(char *block, int size, FILE *fp)
 	
 
 	//	DEBUG
-	printf("Last size read: %d\n", n);
+	printf("Last fread returned: %d\n", n);
 	//	END DEBUG
 	if(n < size && n > 0) {
-		n++;
-		n++;
-		nPadN(block, size, n);
+		nPadN(block, size, BLOCKSIZE - n);
 	}
 
 	return n;
