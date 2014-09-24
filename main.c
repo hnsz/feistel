@@ -6,8 +6,9 @@ int main(int argc, char *argv[])
 	FILE *inFile;
 	FILE *outFile;
 
-	char *inFilename = "stdin";
-	char *outFilename = "stdout";
+	char *plaintextFile = "message.txt";
+	char *ciphertextFile = "message.enc";
+	char *outFilename = "outfile";
 	char *password = "12345678";
 	char keySchedule[10][4];
 	char block[BLOCKSIZE];
@@ -32,16 +33,13 @@ int main(int argc, char *argv[])
 
 
 
-
-/*
-	For now
-	Setting inFile = stdin
-		outFile = stdout 
-	inFile = fCheckOpen(inFilename, "r");
+	if(decrypt) {
+		inFile = fCheckOpen(ciphertextFile, "r");
+	}
+	else {
+		inFile = fCheckOpen(plaintextFile, "r");
+	}
 	outFile = fCheckOpen(outFilename, "w");
-*/
-	inFile = stdin;
-	outFile = stdout;
 
 
 
@@ -49,14 +47,14 @@ int main(int argc, char *argv[])
 
 
 	//	DEBUG
-//	printf("password: %s\ndecrypt: %d\n", password, decrypt);
+	printf("password: %s\nmode: %s\n", password, (decrypt)?"decrypting":"encrypting");
 
 
 
-
+	
 	buildKeySchedule(password, keySchedule);
 	//	DEBUG
-	//fPrintKeySchedule(keySchedule, 10, stdout);
+	fPrintKeySchedule(stdout, keySchedule, 10);
 
 
 
@@ -78,8 +76,11 @@ int main(int argc, char *argv[])
 			}
 
 			feistel(block, subKey);
+
+			//	DEBUG
 			printf("\nsubkey:");
 			fPrintSubKey(stdout, subKey);
+			//	END DEBUG
 
 
 		}
@@ -88,8 +89,8 @@ int main(int argc, char *argv[])
 
 	}
 
-	//	PRINT TRAILING NEWLING
-		printf("\n");
+	//	PRINT TRAILING NEWLINE
+	printf("\n");
 
 
 
