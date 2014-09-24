@@ -60,32 +60,28 @@ int main(int argc, char *argv[])
 
 	while ((fReadBlock(block, BLOCKSIZE, inFile))) {
 
-		//	DEBUG
-		//fprintf(outFile, "Next block:\n");
-		//	END DEBUG
 		for (i = 0; i < 10; i++) {
-		//	DEBUG
-		//fPrintBlock(block, outFile);
-		//fprintf(outFile, "\n");
-		//	END DEBUG
 		 
 			if (decrypt) {
 				subKey = keySchedule[9 - i];
+				feistelEncrypt(block, subKey);
 			} else {
 				subKey = keySchedule[i];
+				feistelDecrypt(block, subKey);
 			}
 
-			feistel(block, subKey);
 
 			//	DEBUG
 			printf("\nsubkey:");
 			fPrintSubKey(stdout, subKey);
+			putchar('\n');
 			//	END DEBUG
 
 
 		}
 
-		fPrintBlock(outFile,block);
+		fPrintBlock(outFile, block);
+
 
 	}
 
@@ -133,10 +129,7 @@ void fPrintSubKey(FILE *out, char key[KEYSIZE])
 
 	for(i = 0; i < KEYSIZE; ++i) {
 
-		if(i > 0)
-			fputc(' ', out);
-
-		fPrintNibbles(out, key[i]);
+		fputc(key[i], out);
 	}
 	
 }
@@ -148,33 +141,31 @@ void fPrintNibbles(FILE *out, char ch)
 
 void buildKeySchedule(char *password, char keySchedule[][4])
 {
-	unsigned char cur_key[SHA_DIGEST_LENGTH];
-	unsigned char next_key[SHA_DIGEST_LENGTH];
+	unsigned char key_sha[SHA_DIGEST_LENGTH];
 	int i;
+	int j;
+	char key_hex[2 * SHA_DIGEST_LENGTH + 1];
 
 
 
+	SHA1((unsigned const char *) password, strlen(password), key_sha);
 
-	SHA1((unsigned const char *) password, strlen(password), next_key);
-
-
+	
 
 	for (i = 0; i < 5; i++) {
 
+		for(j = 0; j < SHA_DIGEST_LENGTH; ++j) {
+			sprintf((key_hex + j * 2), "%02x", key_sha[j]);
+//			sprintf((key_hex + j * 2 + 1), "%02x", key_sha[j+1]);
+		}
 
-		memcpy(cur_key, next_key, SHA_DIGEST_LENGTH);
-
-		memcpy(keySchedule[i * 2], cur_key, 4);
-		memcpy(keySchedule[(i * 2) + 1], &(cur_key[4]), 4);
+		memcpy(keySchedule[i * 2], key_hex, 4);
+		memcpy(keySchedule[(i * 2) + 1], &(key_hex[4]), 4);
 
 
-		SHA1(cur_key, SHA_DIGEST_LENGTH, next_key);
+		SHA1((unsigned const char *)key_hex, 2 * SHA_DIGEST_LENGTH, key_sha);
 	}
 }
-
-
-
-
 
 
 void fPrintBlock(FILE *out, char block[BLOCKSIZE])
@@ -225,7 +216,7 @@ int fReadBlock(char *block, int size, FILE *fp)
 
 
 	if(n < size && n > 0) {
-		nPadN(block, size, n);
+		nPadN(block, size, n-1);
 	}
 
 	return n;
@@ -236,12 +227,12 @@ int getArgs(int argc, char **argv, int *decrypt, char *password)
 	int pwLength;
 
 
-	if (strcmp("-d", argv[1]) == 0) {
+	if (strncmp("-d", argv[1], 2) == 0) {
 
 		*decrypt = 1;
 	}
 	else
-	if(strcmp("-e", argv[1]) == 0) {
+	if(strncmp("-e", argv[1], 2) == 0) {
 
 		*decrypt = 0;
 	}

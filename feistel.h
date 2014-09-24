@@ -3,4 +3,5 @@
 #include <string.h>
 #include <math.h>
 
-void feistel(char block[8], char* subKey);
+void feistelEncrypt(char block[8], char* subKey);
+void feistelDecrypt(char block[8], char* subKey);
