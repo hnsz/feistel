@@ -1,6 +1,6 @@
 #include "main.h"
 
-//      writes decryption or encryption of stdin to stdout
+//      writes decryption or encryption to "outfile"
 int main(int argc, char *argv[])
 {
 	FILE *inFile;
