@@ -1,0 +1,13 @@
+
+programma aanroepen met
+./a.out -d
+of
+./a.out -e
+
+Als hij encrypt pakt hij de input van message.txt
+Als hij decrypt pakt hij de input van mexxage.enc
+
+Hij stuurt het resultaat naar outfile
+Hij print debug info naar stdout oftewel je scherm
+
+
