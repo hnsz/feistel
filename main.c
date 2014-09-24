@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 
 	int decrypt;
 	int i;
-
+	int n;
 
 
 	/**	!!(REMOVE THIS COMMENT
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 
 
 			//	DEBUG
-			printf("\nsubkey:");
+			printf("subkey:");
 			fPrintSubKey(stdout, subKey);
 			putchar('\n');
 			//	END DEBUG
@@ -80,7 +80,11 @@ int main(int argc, char *argv[])
 
 		}
 
-		fPrintBlock(outFile, block);
+		
+		if(decrypt && (n = getPaddingSize(block)))
+			fPrintBlock(outFile, block, BLOCKSIZE - n);
+		else
+			fPrintBlock(outFile, block, BLOCKSIZE);
 
 
 	}
@@ -95,6 +99,13 @@ int main(int argc, char *argv[])
 
 
 	return 0;
+}
+int getPaddingSize(char *block)
+{
+	if(block[BLOCKSIZE - 1] > 0 && block[BLOCKSIZE - 1] < BLOCKSIZE)
+		return block[BLOCKSIZE - 1];
+	else
+		return 0;
 }
 
 char *allocCharBuffer(int size)
@@ -156,7 +167,6 @@ void buildKeySchedule(char *password, char keySchedule[][4])
 
 		for(j = 0; j < SHA_DIGEST_LENGTH; ++j) {
 			sprintf((key_hex + j * 2), "%02x", key_sha[j]);
-//			sprintf((key_hex + j * 2 + 1), "%02x", key_sha[j+1]);
 		}
 
 		memcpy(keySchedule[i * 2], key_hex, 4);
@@ -168,10 +178,10 @@ void buildKeySchedule(char *password, char keySchedule[][4])
 }
 
 
-void fPrintBlock(FILE *out, char block[BLOCKSIZE])
+void fPrintBlock(FILE *out, char block[BLOCKSIZE], int n)
 {
 	int i;
-	for (i = 0; i < BLOCKSIZE; i++) {
+	for (i = 0; i < n; i++) {
 		fputc(block[i], out);
 	}
 }
@@ -213,10 +223,15 @@ int fReadBlock(char *block, int size, FILE *fp)
 	int n;
 
 	n = fread(block, 1, size, fp);
+	
 
-
+	//	DEBUG
+	printf("Last size read: %d\n", n);
+	//	END DEBUG
 	if(n < size && n > 0) {
-		nPadN(block, size, n-1);
+		n++;
+		n++;
+		nPadN(block, size, n);
 	}
 
 	return n;
