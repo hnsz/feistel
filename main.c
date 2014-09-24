@@ -1,14 +1,104 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include "main.h"
 
-#include <openssl/sha.h>
+//      writes decryption or encryption of stdin to stdout
+int main(int argc, char *argv[])
+{
+	FILE *inFile;
+	FILE *outFile;
 
-#include "feistel.h"
+	char *inFilename = "stdin";
+	char *outFilename = "stdout";
+	char *password = "12345678";
+	char keySchedule[10][4];
+	char block[BLOCKSIZE];
+	char *subKey;
 
-#define BLOCKSIZE 8
+	int decrypt;
+	int i;
 
+
+
+	/**	!!(REMOVE THIS COMMENT
+	*	Using hardcoded pass for now
+	*	Also changed function getArgs to skip password
+	*/
+	if(! getArgs(argc, argv, &decrypt, password)) {
+
+		printUsageExit(argv[0], -1);
+
+	}
+
+
+
+
+
+
+/*
+	For now
+	Setting inFile = stdin
+		outFile = stdout 
+	inFile = fCheckOpen(inFilename, "r");
+	outFile = fCheckOpen(outFilename, "w");
+*/
+	inFile = stdin;
+	outFile = stdout;
+
+
+
+
+
+
+	//	DEBUG
+//	printf("password: %s\ndecrypt: %d\n", password, decrypt);
+
+
+
+
+	buildKeySchedule(password, keySchedule);
+	//	DEBUG
+	//fPrintKeySchedule(keySchedule, 10, stdout);
+
+
+
+	while ((fReadBlock(block, BLOCKSIZE, inFile))) {
+
+		//	DEBUG
+		//fprintf(outFile, "Next block:\n");
+		//	END DEBUG
+		for (i = 0; i < 10; i++) {
+		//	DEBUG
+		//fPrintBlock(block, outFile);
+		//fprintf(outFile, "\n");
+		//	END DEBUG
+		 
+			if (decrypt) {
+				subKey = keySchedule[9 - i];
+			} else {
+				subKey = keySchedule[i];
+			}
+
+			feistel(block, subKey);
+			printf("\nsubkey:");
+			fPrintSubKey(stdout, subKey);
+
+
+		}
+
+		fPrintBlock(outFile,block);
+
+	}
+
+	//	PRINT TRAILING NEWLING
+		printf("\n");
+
+
+
+	fclose(inFile);
+	fclose(outFile);
+
+
+	return 0;
+}
 
 char *allocCharBuffer(int size)
 {
@@ -25,38 +115,37 @@ char *allocCharBuffer(int size)
 
 
 
-
-//      makes new key from old one
-void computeNewKey(unsigned char key_dst[20], unsigned char key_src[20])
+void fPrintKeySchedule(FILE *out, char keySchedule[][KEYSIZE], int nKeys)
 {
+	int i;
 
-/**
-	int k;
-	char pieceOfKeyString[3] = "";
-	char keyString[(SHA_DIGEST_LENGTH * 2) + 1] = "";
+	for(i = 0; i < nKeys; ++i) {
 
-
-	for (k = 0; k < SHA_DIGEST_LENGTH; k++) {
-		sprintf(pieceOfKeyString, "%02x", key[k]);
-		strcat(keyString, pieceOfKeyString);
+		fPrintSubKey(out, keySchedule[i]);
+		fprintf(out, "\n");
 	}
-
-	SHA1((unsigned const char *) keyString, SHA_DIGEST_LENGTH * 2, key);
-
-	printf("%s = keystring\n", keyString);
-
-	//	DEBUG
-	for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
-	{
-		printf("%02x ", key[i]);
-	}
-	printf("\n");
-	//	END DEBUG
-*/
 }
 
+void fPrintSubKey(FILE *out, char key[KEYSIZE])
+{
+	int i;
 
-void buildKeySchedule(char *password, char keySchedule[10][4])
+	for(i = 0; i < KEYSIZE; ++i) {
+
+		if(i > 0)
+			fputc(' ', out);
+
+		fPrintNibbles(out, key[i]);
+	}
+	
+}
+//	Prints a byte as two nibbles in hex format
+void fPrintNibbles(FILE *out, char ch)
+{
+	fprintf(out,"%0x%0x", toNibbleL(ch), toNibbleR(ch));
+}
+
+void buildKeySchedule(char *password, char keySchedule[][4])
 {
 	unsigned char cur_key[SHA_DIGEST_LENGTH];
 	unsigned char next_key[SHA_DIGEST_LENGTH];
@@ -67,35 +156,16 @@ void buildKeySchedule(char *password, char keySchedule[10][4])
 
 	SHA1((unsigned const char *) password, strlen(password), next_key);
 
-	//	DEBUG
-/*
-	for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
-	{
-		printf("%02x ", next_key[i]);
-	}
-	printf("\n");
-*/
-	//	END DEBUG
 
 
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 5; i++) {
 
 
 		memcpy(cur_key, next_key, SHA_DIGEST_LENGTH);
 
 		memcpy(keySchedule[i * 2], cur_key, 4);
-		memcpy(keySchedule[(i * 2) + 1], cur_key + 4, 4);
+		memcpy(keySchedule[(i * 2) + 1], &(cur_key[4]), 4);
 
-
-		//	DEBUG
-		/*
-		int j;
-		for (int j=0; j<4; j++) {
-			printf("%02x ", keySchedule[i*2][j]);
-		}
-		printf("\n");
-		*/
-		//	END DEBUG
 
 		SHA1(cur_key, SHA_DIGEST_LENGTH, next_key);
 	}
@@ -103,68 +173,17 @@ void buildKeySchedule(char *password, char keySchedule[10][4])
 
 
 
-int getArgs(int argc, char **argv, int *decrypt, char *password)
-{
-	int pwLength;
-
-
-	if (strcmp("-d", argv[0]) == 0) {
-
-		*decrypt = 1;
-	}
-	else
-	if(strcmp("-e", argv[0]) == 0) {
-
-		*decrypt = 0;
-	}
-	else {
-		return 0;
-	}
-
-
-	pwLength = strlen(argv[1]);
-	if(pwLength >= 8) {
-		
-		password = allocCharBuffer(pwLength + 1);
-		strcpy(password, argv[1]);
-	}
-	else {
-		return 0;
-	}
-
-	return 1;
-}
-
-
-void printUsageExit(char *programName, int exitCode)
-{
-	printf("Usage: %s -e|-d password\n\
--d	decrypt\n-e	encrypt\nPassword must be of length > 8.\n", programName);
-	exit(exitCode);
-}
 
 
 
-void fPrintBlock(char block[BLOCKSIZE], FILE * output)
+void fPrintBlock(FILE *out, char block[BLOCKSIZE])
 {
 	int i;
 	for (i = 0; i < BLOCKSIZE; i++) {
-		fputc(block[i], output);
+		fputc(block[i], out);
 	}
 }
 
-FILE *fCheckOpen(char *filename, char *mode)
-{
-	FILE *fp;
-
-	fp = fopen(filename, mode);
-	if(fp == NULL) {
-		printf("Failed to open file '%s', mode \"%s\". Exit..", filename, mode);
-		exit(-1);
-	}
-
-	return fp;
-}
 
 void nPadN(char *block, int size, int n)
 {
@@ -174,6 +193,24 @@ void nPadN(char *block, int size, int n)
 
 		block[i] = n;
 	}
+}
+
+unsigned char toNibbleL(char num)
+{
+	unsigned char l;
+
+	l = (unsigned char)num;
+	return (l >> 4);
+	
+}
+unsigned char toNibbleR(char num)
+{
+	unsigned char r;
+	unsigned char mask  = 128+64+32+16;
+
+	r = (unsigned char)num;
+
+	return ((r | mask) ^ mask);
 }
 
 /*******
@@ -193,70 +230,60 @@ int fReadBlock(char *block, int size, FILE *fp)
 	return n;
 }
 
-//      writes decryption or encryption of stdin to stdout
-int main(int argc, char *argv[])
+int getArgs(int argc, char **argv, int *decrypt, char *password)
 {
-	FILE *inFile;
-	FILE *outFile;
-
-	char *inFilename = "stdin";
-	char *outFilename = "stdout";
-	char *password = "12345678";
-	char keySchedule[10][4];
-	char block[BLOCKSIZE];
-	char *subKey;
-
-	int decrypt;
-	int i;
+	int pwLength;
 
 
-	decrypt = 1;
-	/*	Disable: Using Hardcoded values for now.
-	if(! getArgs(argc, argv, &decrypt, password)) {
+	if (strcmp("-d", argv[1]) == 0) {
 
-		printUsageExit(argv[0], -1);
-
+		*decrypt = 1;
 	}
-	*/
-	inFile = fCheckOpen(inFilename, "r");
-	outFile = fCheckOpen(outFilename, "w");
+	else
+	if(strcmp("-e", argv[1]) == 0) {
 
-	//	DEBUG
-	printf("password: %s\ndecrypt: %d\n", password, decrypt);
-
-
-
-
-	buildKeySchedule(password, keySchedule);
-
-
-
-	while ((fReadBlock(block, BLOCKSIZE, inFile)) != EOF) {
-
-		for (i = 0; i < 10; i++) {
-			if (decrypt) {
-				subKey = keySchedule[9 - i];
-			} else {
-				subKey = keySchedule[i];
-			}
-
-			feistel(block, subKey);
-
-		}
-		fPrintBlock(block, outFile);
-
-		//	DEBUG
-		//fprintf(output, "%s", block);
-		//fprintf(output, "\n");
-
+		*decrypt = 0;
+	}
+	else {
+		return 0;
 	}
 
+	//	!!(REMOVE COMMENT) must remove this return statement
+	return 1;
+
+	pwLength = strlen(argv[2]);
+	if(pwLength >= 8) {
+		
+		password = allocCharBuffer(pwLength + 1);
+		strcpy(password, argv[2]);
+	}
+	else {
+		return 0;
+	}
+
+	return 1;
+}
+
+
+void printUsageExit(char *programName, int exitCode)
+{
+	printf("Usage: %s -e|-d password\n\
+-d	decrypt\n-e	encrypt\nPassword must be of length > 8.\n", programName);
+	exit(exitCode);
+}
 
 
 
-	fclose(inFile);
-	fclose(outFile);
 
+FILE *fCheckOpen(char *filename, char *mode)
+{
+	FILE *fp;
 
-	return 0;
+	fp = fopen(filename, mode);
+	if(fp == NULL) {
+		printf("Failed to open file '%s', mode \"%s\". Exit..", filename, mode);
+		exit(-1);
+	}
+
+	return fp;
 }

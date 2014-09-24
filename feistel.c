@@ -7,7 +7,7 @@
 
 #include "feistel.h"
 
-void feistel(char block[8], char *subKey)
+void feistel(char *block, char *subKey)
 {
 	char LH[4] = "";
 	char RH[4] = "";
