@@ -1,4 +1,5 @@
 #include "main.h"
+#define USE_CBC 0
 
 //      writes decryption or encryption to "outfile"
 int main(int argc, char *argv[])
@@ -11,12 +12,9 @@ int main(int argc, char *argv[])
 	char *outFilename = "outfile";
 	char *password = "12345678";
 	char keySchedule[10][4];
-	char block[BLOCKSIZE];
-	char *subKey;
 
 	int decrypt;
-	int i;
-	int n;
+	char *IV = "92837465";
 
 
 	/**	!!(REMOVE THIS COMMENT
@@ -57,40 +55,11 @@ int main(int argc, char *argv[])
 	fPrintKeySchedule(stdout, keySchedule, 10);
 
 
+	if(USE_CBC)
+		cbcXcrypt(inFile, outFile, decrypt, keySchedule, IV);
+	else
+		ecbXcrypt(inFile, outFile,  decrypt, keySchedule);
 
-	while ((fReadBlock(block, BLOCKSIZE, inFile))) {
-
-		for (i = 0; i < 10; i++) {
-		 
-			if (decrypt) {
-				subKey = keySchedule[9 - i];
-				feistelEncrypt(block, subKey);
-			} else {
-				subKey = keySchedule[i];
-				feistelDecrypt(block, subKey);
-			}
-
-
-			//	DEBUG
-			printf("subkey:");
-			fPrintSubKey(stdout, subKey);
-			putchar('\n');
-			//	END DEBUG
-
-
-		}
-
-		
-		if(decrypt && (n = getPaddingSize(block)))
-			fPrintBlock(outFile, block, BLOCKSIZE - n);
-		else
-			fPrintBlock(outFile, block, BLOCKSIZE);
-
-
-	}
-
-	//	PRINT TRAILING NEWLINE
-	printf("\n");
 
 
 
@@ -99,6 +68,81 @@ int main(int argc, char *argv[])
 
 
 	return 0;
+}
+void ecbXcrypt(FILE *inFile, FILE *outFile, int decrypt, char keySchedule[][BLOCKSIZE/2])
+{
+	char block[BLOCKSIZE];
+	int n;
+	while ((fReadBlock(block, BLOCKSIZE, inFile))) {
+
+		if (decrypt)
+			decryptBlock(block, keySchedule);
+		else
+			encryptBlock(block, keySchedule);
+		
+		
+		if(decrypt && (n = getPaddingSize(block)))
+			fPrintBlock(outFile, block, BLOCKSIZE - n);
+		else
+			fPrintBlock(outFile, block, BLOCKSIZE);
+	}
+}
+void cbcXcrypt(FILE *inFile, FILE *outFile, int decrypt, char keySchedule[][BLOCKSIZE/2], char IV[BLOCKSIZE])
+{
+	char block[BLOCKSIZE];
+	char cbcMask[BLOCKSIZE];
+	char nextCbcMask[BLOCKSIZE];
+	int n;
+
+	memcpy(cbcMask, IV, BLOCKSIZE);
+	while ((fReadBlock(block, BLOCKSIZE, inFile))) {
+
+		if (decrypt) {
+			memcpy(nextCbcMask, block, BLOCKSIZE);
+			decryptBlock(block, keySchedule);
+			xorBlock(block, cbcMask);
+		} else {
+			xorBlock(block, cbcMask);
+			encryptBlock(block, keySchedule);
+			memcpy(nextCbcMask, block, BLOCKSIZE);
+		}
+
+		memcpy(cbcMask, nextCbcMask, BLOCKSIZE);
+
+		if(decrypt && (n = getPaddingSize(block)))
+			fPrintBlock(outFile, block, BLOCKSIZE - n);
+		else
+			fPrintBlock(outFile, block, BLOCKSIZE);
+
+	}
+}
+
+
+void encryptBlock(char block[BLOCKSIZE], char keySchedule[][BLOCKSIZE/2])
+{
+	int i;
+	for (i = 0; i < 10; i++) {
+	 
+		feistelDecrypt(block, keySchedule[i]);
+
+	}
+}
+void decryptBlock(char block[BLOCKSIZE], char keySchedule[][BLOCKSIZE/2])
+{
+	int i;
+	for (i = 0; i < 10; i++) {
+	 
+		feistelEncrypt(block, keySchedule[9-i]);
+	}
+}
+void xorBlock(char block[BLOCKSIZE], char mask[BLOCKSIZE])
+{
+	int i;
+
+	for(i = 0; i < BLOCKSIZE; ++i) {
+
+		block[i] ^= mask[i];
+	}
 }
 int getPaddingSize(char *block)
 {
