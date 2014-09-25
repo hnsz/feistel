@@ -7,15 +7,16 @@ int main(int argc, char *argv[])
 	FILE *inFile;
 	FILE *outFile;
 
-	char *plaintextFile = "message.txt";
-	char *ciphertextFile = "message.enc";
 	char *outFilename = "outfile";
-	char *password = "12345678";
 	char keySchedule[10][4];
 
 	int decrypt;
 	char *IV = "92837465";
+	char *password = "\x1e\xfe\xba\x22\xe7\x70\xe9\x5f";
 
+	//char *ciphertextFile = "message.enc";
+	char *ciphertextFile = "feistel.enc";
+	char *plaintextFile = "message.txt";
 
 	/**	!!(REMOVE THIS COMMENT
 	*	Using hardcoded pass for now
