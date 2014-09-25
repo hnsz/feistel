@@ -1,2 +1,4 @@
-Dit moet worden gedecryp
+This is a message to be encrypted.
 
+Cylons must not see!
+Frakkin' skin jobs.

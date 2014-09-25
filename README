@@ -1,13 +1,37 @@
+Compiles to binary: a.out
 
-programma aanroepen met
-./a.out -d
-of
-./a.out -e
+Call program with: ./a.out
 
-Als hij encrypt pakt hij de input van message.txt
-Als hij decrypt pakt hij de input van mexxage.enc
-
-Hij stuurt het resultaat naar outfile
-Hij print debug info naar stdout oftewel je scherm
+Commanline options:
+-d		decrypt
+-e		encrypt
 
 
+The program
+	Reads input from stdin
+	Writes output to stdout
+	Writes debug info to stderr
+
+
+Examples:
+
+./a.out -e < message.txt > message.enc
+	Reads plaintext message from file: message.txt
+	Writes encrypted message to file: message.enc
+	Writes debug info to prompt
+
+./a.out -e > message.enc					
+	Reads plaintext message from prompt (end with ctrl-d)
+	Writes encrypted message to file message.enc
+	Writes debug info to prompt
+
+./a.out -e < message.txt >  message.enc 2> error.log
+	Reads plaintext message from file: message.txt
+	Writes encrypted message to file: message.enc
+	Writes debug info to file error.log
+
+
+./a.out -d < message.enc
+	Reads encrypted message from file: message.enc
+	Writes decrypted message to prompt
+	Writes debug info to prompt

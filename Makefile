@@ -1,10 +1,14 @@
-CFLAGS=--std=c99 -Wall -pedantic -lm -lcrypto
+CC=cc
+FLAGS=--std=c99 -Wall -pedantic -g
+CFLAGS=$(FLAGS) -c
+OBJS=feistel.o blockcipher.o
 
-main: main.c feistel.o
-	cc main.c feistel.o $(CFLAGS)
 
-feistel: feistel.h feistel.c
-	cc -c feistel.c $(CFLAGS)
+a.out: main.c $(OBJS)
+	$(CC) main.c $(OBJS) $(FLAGS) -lcrypto
 
-cunit: cunit_test.c feistel.o
-	cc cunit_test.c feistel.o $(CFLAGS) -lcunit -o test; ./test
+feistel.o: feistel.h feistel.c
+	$(CC) $(CFLAGS) feistel.c 
+
+blockcipher.o: blockcipher.h blockcipher.c
+	$(CC) $(CFLAGS) blockcipher.c
