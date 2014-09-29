@@ -205,8 +205,8 @@ void buildKeySchedule(char *password, char keySchedule[][4])
 		}
 		fprintf(stderr, "%s\n", key_hex);
 
-		memcpy(keySchedule[i * 2], key_hex, 4);
-		memcpy(keySchedule[(i * 2) + 1], &(key_hex[4]), 4);
+		memcpy(keySchedule[i * 2], key_sha, 4);
+		memcpy(keySchedule[(i * 2) + 1], &(key_sha[4]), 4);
 		SHA1((unsigned const char *)key_hex, 2 * SHA_DIGEST_LENGTH , key_sha);
 	}
 }
